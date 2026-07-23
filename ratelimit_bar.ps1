@@ -5,7 +5,11 @@ $cacheFile = "$env:USERPROFILE\.claude\.statusline_ratelimit_cache.json"
 
 function Format-ResetIn($epochSeconds) {
     if (-not $epochSeconds) { return "?" }
-    $resetTime = [DateTimeOffset]::FromUnixTimeSeconds($epochSeconds).LocalDateTime
+    try {
+        $resetTime = [DateTimeOffset]::FromUnixTimeSeconds([long]$epochSeconds).LocalDateTime
+    } catch {
+        return "?"
+    }
     $span = $resetTime - (Get-Date)
     if ($span.TotalSeconds -le 0) { return "now" }
     if ($span.TotalHours -ge 24) { return "$([math]::Floor($span.TotalDays))d$($span.Hours)h" }
@@ -58,6 +62,13 @@ function Measure-Segment($label, $pctStr, $resetTxt) {
     return $lblW + $gapAfterLabel + $trackW + $gapAfterTrack + $pctW + $gapAfterPct + $subW
 }
 
+$script:lastGoodData = [PSCustomObject]@{
+    fiveH       = 0
+    sevenD      = 0
+    fiveHReset  = "?"
+    sevenDReset = "?"
+}
+
 function Get-Data {
     $c = $null
     if (Test-Path $cacheFile) {
@@ -65,12 +76,21 @@ function Get-Data {
             try { $c = Get-Content $cacheFile -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop } catch { Start-Sleep -Milliseconds 30 }
         }
     }
-    [PSCustomObject]@{
-        fiveH       = if ($c.fiveH) { [double]$c.fiveH } else { 0 }
-        sevenD      = if ($c.sevenD) { [double]$c.sevenD } else { 0 }
-        fiveHReset  = Format-ResetIn $c.fiveHResetsAt
-        sevenDReset = Format-ResetIn $c.sevenDResetsAt
+    if (-not $c) { return $script:lastGoodData }
+
+    try {
+        $data = [PSCustomObject]@{
+            fiveH       = if ($c.fiveH) { [double]$c.fiveH } else { 0 }
+            sevenD      = if ($c.sevenD) { [double]$c.sevenD } else { 0 }
+            fiveHReset  = Format-ResetIn $c.fiveHResetsAt
+            sevenDReset = Format-ResetIn $c.sevenDResetsAt
+        }
+    } catch {
+        return $script:lastGoodData
     }
+
+    $script:lastGoodData = $data
+    return $data
 }
 
 # ---- window ----
