@@ -1,91 +1,44 @@
-# Token Taker
+# Token Taker — Claude Usage Widget
 
-A floating widget that shows your Claude Code 5-hour and 7-day usage limits, always sitting above the taskbar — no tray icon, no console window, no dependencies.
+A tiny Windows app for watching your [Claude Code](https://claude.com/claude-code) usage limits without leaving your desktop — a floating always-on-top widget, an optional rich terminal statusline, and an AI-powered self-fix tab, all in one installer/manager.
 
-![status](https://img.shields.io/badge/platform-Windows%2010%2F11-blue) ![deps](https://img.shields.io/badge/dependencies-zero-brightgreen)
+## Get it
 
-## What it looks like
+Download **`Claude Usage Widget.exe`** from this repo and run it. That's the whole install — no dependencies to set up yourself (Claude Code CLI just needs to already be installed and logged in for real data to show up).
 
-A slim glass pill in the bottom-right corner:
+## What it does
 
-```
-[5H ▓▓░░░░░░░░ 8%  4h12m] │ [7D ▓▓▓▓▓▓▓░░░ 75%  6d3h]
-```
+### Floating widget
+A small, draggable, resizable, always-on-top window showing your 5-hour and 7-day usage as color-coded progress bars (green → orange → red as you approach the limit), with time-to-reset. Two layouts: one-line or stacked. Remembers its position and size, can start with Windows, and lives in the system tray of your attention without ever stealing focus.
 
-- Two color-coded bars (green → yellow → red as usage climbs)
-- Live percentage and time-until-reset for both limits, always visible — no hover, no tooltip needed
-- Auto-sizes to fit its content exactly
-- Drag anywhere with left-click; right-click to exit
+### Statusline only
+Installs a full-featured Claude Code terminal statusline instead of (or alongside) the floating widget — model name, effort level, git branch (with a dirty marker), colored 5h/7d usage bars with reset times, current folder, and context-window usage, all on one line in your prompt. If you already have a custom statusline configured, the installer wraps it instead of overwriting it, so your existing setup keeps working with usage data layered on top.
 
-## How it works
+### AI Fix
+Something broken? Describe the problem in plain English and Claude Code fixes it directly — reading and editing this app's own files under `~/.claude` to resolve the issue, with the fix streamed live into the window. No terminal, no manual editing, nothing to approve step by step. It's restricted to file read/edit tools only (no arbitrary shell commands) and asks for a one-time go-ahead before its first unattended run each session. Requires Claude Code CLI to already be installed and logged in — the app tells you plainly if it isn't.
 
-Claude Code's statusline already receives your rate-limit data (`five_hour` / `seven_day` usage and reset timestamps) on every turn. Your `~/.claude/statusline.ps1` caches that into `~/.claude/.statusline_ratelimit_cache.json`. Token Taker just reads that same file every 15 seconds and draws it — no network calls, no API keys, nothing beyond what Claude Code already fetched for itself.
+## How it's built
 
-Built entirely on what ships with Windows: PowerShell + WinForms + GDI+ (`System.Drawing`). No installer runtime, no NuGet packages, no PowerShell modules.
+This is one self-contained PowerShell + WPF application, compiled to a single `.exe` with [ps2exe](https://github.com/MScholtes/PS2EXE). The installer detects whether it's already set up and shows either a first-run **Setup** screen or a full **Manager** screen (start/stop, autostart toggle, layout switch, uninstall) — same binary, both roles.
 
-## Requirements
+### Files in this repo
 
-- Windows 10 or 11
-- Claude Code CLI installed, with `~/.claude/statusline.ps1` set as your active statusline (it's what populates the cache file this widget reads)
-
-## Install
-
-1. Double-click **`Setup.bat`**
-2. Choose **[1] Install**
-
-That's it. The installer will:
-- Verify the required files and your `~/.claude` folder exist
-- Copy `ratelimit_bar.ps1` + `ratelimit_bar.vbs` into `~/.claude/`
-- Register it to start automatically on every login
-- Launch it immediately
-- Print a summary confirming install path, autostart status, and controls
-
-If you haven't used Claude Code recently, the bars may start at 0% until the statusline reports fresh data.
-
-## Uninstall
-
-Run **`Setup.bat`** → **[2] Uninstall**. Confirms with `Y`, then:
-- Stops the running widget
-- Removes it from Windows startup
-- Deletes the installed files from `~/.claude/`
-
-Your usage cache file is left untouched — it's shared with your statusline and other tools may depend on it.
-
-## Check status
-
-**`Setup.bat`** → **[3] Status** — reports whether it's installed, whether autostart is enabled, and whether it's currently running.
-
-## Using it day-to-day
-
-| Action | How |
+| File | What it is |
 |---|---|
-| Move it | Left-click and drag |
-| Close it | Right-click → Exit |
-| See exact reset time | Already inline — no need to hover |
-| Restart after closing | Re-run `Setup.bat` → Install (safe to re-run any time) |
+| `Claude Usage Widget.exe` | The compiled app — this is what you actually run. |
+| `ClaudeUsageWidgetSetup-source.ps1` | Source for the installer/manager GUI (compiles into the exe above). |
+| `usage-widget.ps1` | The floating widget itself, written to `~/.claude/` on install. |
+| `statusline-command.ps1` | The full terminal statusline script. |
+| `usage-widget-icon.ico` | App/taskbar icon. |
 
-## Folder contents
+### Rebuilding the exe yourself
 
-| File | Purpose |
-|---|---|
-| `Setup.bat` | Entry point — double-click to install/uninstall/check status |
-| `setup.ps1` | Installer logic (called by `Setup.bat`) |
-| `ratelimit_bar.ps1` | The widget itself |
-| `ratelimit_bar.vbs` | Silent launcher (runs the widget with no visible console window) |
-| `README.md` | This file |
+```powershell
+Install-Module ps2exe -Scope CurrentUser
+Import-Module ps2exe
+Invoke-ps2exe -inputFile .\ClaudeUsageWidgetSetup-source.ps1 -outputFile ".\Claude Usage Widget.exe" -noConsole -icon .\usage-widget-icon.ico -title "Claude Usage Widget"
+```
 
-All install/uninstall logic reads only from files in this folder — nothing is downloaded.
+## Uninstalling
 
-## Troubleshooting
-
-**Nothing shows up after install** — check `Setup.bat` → Status. If "Running: no", try reinstalling; if it still fails, run `ratelimit_bar.ps1` directly in a visible PowerShell window to see any error.
-
-**Bars stuck at 0%** — the cache file hasn't been written yet. Use Claude Code once (any prompt) and it'll populate.
-
-**Widget disappeared on its own** — shouldn't happen; the widget swallows its own errors and keeps running. If it does, reinstall and let us know what you were doing when it happened.
-
-**Wrong corner / off-screen** — drag it back into place; position isn't currently saved between restarts.
-
-## Privacy
-
-Reads one local JSON file. No network access, no telemetry, no external calls of any kind.
+Open the app once it's installed (Manager screen) and click **Uninstall widget** — it stops the widget, removes its statusline hook (only ever touching hooks it can prove it created), and deletes every file it wrote. The app itself is left behind so you can reinstall later.
