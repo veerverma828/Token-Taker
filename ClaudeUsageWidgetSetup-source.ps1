@@ -69,9 +69,17 @@ if (Test-Path $configPath) {
 if ($Layout -eq "stacked") {
     $DesignWidth  = 230.0
     $DesignHeight = 84.0
+    # below this, the two rows' margins/gaps eat more space than the rows
+    # themselves have left, so bars and labels start overlapping/clipping.
+    $MinWidth  = 140.0
+    $MinHeight = 64.0
 } else {
     $DesignWidth  = 380.0
     $DesignHeight = 46.0
+    # one-line has 7 columns (label/bar/text x2 plus a separator) - much
+    # below this width they run out of room and start overlapping.
+    $MinWidth  = 220.0
+    $MinHeight = 34.0
 }
 $GripSize = 7
 
@@ -136,7 +144,7 @@ if ($Layout -eq "stacked") {
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         Title="Claude Usage" Height="$DesignHeight" Width="$DesignWidth"
-        MinWidth="120" MinHeight="30" MaxWidth="1400" MaxHeight="320"
+        MinWidth="$MinWidth" MinHeight="$MinHeight" MaxWidth="1400" MaxHeight="320"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" ResizeMode="CanResize">
     <shell:WindowChrome.WindowChrome>
