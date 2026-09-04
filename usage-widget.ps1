@@ -375,3 +375,4 @@ $topmostTimer.Start()
 Update-Scale
 Refresh
 $window.ShowDialog() | Out-Null
+

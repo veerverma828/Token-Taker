@@ -1,4 +1,5 @@
-﻿# Claude Code status line. Reads JSON session data on stdin, prints one line.
+﻿# claude-usage-widget:managed-statusline v1 - safe to regenerate/delete, only present on files this installer created
+# Claude Code status line. Reads JSON session data on stdin, prints one line.
 # PowerShell port of statusline-command.sh (no Python dependency).
 
 $ErrorActionPreference = 'SilentlyContinue'
